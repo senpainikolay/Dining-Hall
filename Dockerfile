@@ -7,8 +7,7 @@ WORKDIR /app
 RUN export GO111MODULE=on  
 RUN go mod tidy 
 EXPOSE 8080 
-CMD go run main/main.go
+CMD go run ./main
 
 
- 
 

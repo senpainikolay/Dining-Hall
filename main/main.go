@@ -39,7 +39,7 @@ func main() {
 		time.Sleep(time.Duration(rand.Intn(5-1)+1) * time.Second)
 		postBody, _ := json.Marshal(*ord)
 		responseBody := bytes.NewBuffer(postBody)
-		resp, err := http.Post("http://localhost:8081/order", "application/json", responseBody)
+		resp, err := http.Post("http://kitchen:8081/order", "application/json", responseBody)
 		if err != nil {
 			log.Fatalf("An Error Occured %v", err)
 		}
