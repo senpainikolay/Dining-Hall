@@ -1,13 +1,9 @@
 package main
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math/rand"
-	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -29,39 +25,63 @@ func PostHomePage(c *gin.Context) {
 	fmt.Printf("Post success: %s \n", value)
 }
 
+const (
+	NumberOfTables  = 9
+	NumberOfWaiters = 5
+)
+
 func main() {
 	rand.Seed(time.Now().UnixNano())
-	orderId := 0
-	sendOrder := func() {
+	/*
+		orderId := 0
 
-		ord := order.GetRandomOrder(&orderId)
-		fmt.Println(orderId)
-		time.Sleep(time.Duration(rand.Intn(5-1)+1) * time.Second)
-		postBody, _ := json.Marshal(*ord)
-		responseBody := bytes.NewBuffer(postBody)
-		resp, err := http.Post("http://kitchen:8081/order", "application/json", responseBody)
-		if err != nil {
-			log.Fatalf("An Error Occured %v", err)
-		}
-		defer resp.Body.Close()
-		//Read the response body
-		body, err := ioutil.ReadAll(resp.Body)
+			sendOrder := func() {
 
-		if err != nil {
-			log.Fatalln(err)
-		}
-		sb := string(body)
-		log.Printf(sb)
-	}
+				ord := order.GetRandomOrder(&orderId)
+				fmt.Println(orderId)
+				time.Sleep(time.Duration(rand.Intn(5-1)+1) * time.Second)
+				postBody, _ := json.Marshal(*ord)
+				responseBody := bytes.NewBuffer(postBody)
+				resp, err := http.Post("http://kitchen:8081/order", "application/json", responseBody)
+				if err != nil {
+					log.Fatalf("An Error Occured %v", err)
+				}
+				defer resp.Body.Close()
+				//Read the response body
+				body, err := ioutil.ReadAll(resp.Body)
 
+				if err != nil {
+					log.Fatalln(err)
+				}
+				sb := string(body)
+				log.Printf(sb)
+			}
+	*/
 	r := gin.Default()
 	r.POST("/distribution", PostHomePage)
 	go r.Run(":8080")
 
-	for {
-		go sendOrder()
-		time.Sleep(time.Duration(rand.Intn(3-1)+1) * time.Second)
+	var tables []order.Table
 
+	for i := 1; i <= NumberOfTables; i++ {
+		tables = append(tables,
+			order.Table{
+				TableId:         i,
+				Free:            true,
+				ReadToOrder:     false,
+				WaitingForOrder: false,
+				OrderRecieving:  make(chan order.Order, 1),
+			})
 	}
+	order.OccupyTables(tables, NumberOfTables)
+
+	/*
+		for {
+			go sendOrder()
+			time.Sleep(time.Duration(rand.Intn(3-1)+1) * time.Second)
+
+		}
+
+	*/
 
 }
