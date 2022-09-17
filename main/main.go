@@ -76,12 +76,9 @@ func main() {
 
 	order.OccupyTables(tables, NumberOfTables)
 
-<<<<<<< HEAD
 	// ADDED FOR MAIN
 
-=======
 	// COMMENT FOR TEST BRANCH
->>>>>>> test
 	/*
 		for {
 			go sendOrder()
