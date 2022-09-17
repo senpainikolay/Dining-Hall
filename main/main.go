@@ -75,6 +75,8 @@ func main() {
 	}
 	order.OccupyTables(tables, NumberOfTables)
 
+	// ADDED FOR MAIN
+
 	/*
 		for {
 			go sendOrder()
