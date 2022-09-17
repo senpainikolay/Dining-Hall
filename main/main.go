@@ -73,10 +73,15 @@ func main() {
 				OrderRecieving:  make(chan order.Order, 1),
 			})
 	}
+
 	order.OccupyTables(tables, NumberOfTables)
 
+<<<<<<< HEAD
 	// ADDED FOR MAIN
 
+=======
+	// COMMENT FOR TEST BRANCH
+>>>>>>> test
 	/*
 		for {
 			go sendOrder()
