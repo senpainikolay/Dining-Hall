@@ -58,10 +58,11 @@ func main() {
 				log.Printf(sb)
 			}
 	*/
-	r := gin.Default()
-	r.POST("/distribution", PostHomePage)
-	go r.Run(":8080")
-
+	/*
+		r := gin.Default()
+		r.POST("/distribution", PostHomePage)
+		// go r.Run(":8080")
+	*/
 	var tables []order.Table
 
 	for i := 1; i <= NumberOfTables; i++ {
@@ -87,7 +88,6 @@ func main() {
 	}
 
 	order.OccupyTables(tables, NumberOfTables)
-	log.Println("AUFFF")
 	orderId := order.OrderId{Id: 0}
 
 	for {
@@ -96,13 +96,14 @@ func main() {
 
 			select {
 			case PostOrder := <-waiter.OrdersToRecieve:
-				fmt.Printf("%+v To send to Kitchen from waiter Id %v", PostOrder, waiter.WaiterId)
+				log.Printf(" To send to Kitchen: %+v", PostOrder)
 
 			case ServeOrder := <-waiter.OrdersToServe:
-				fmt.Printf("%+v Serving", ServeOrder)
+				log.Printf("%+v Serving", ServeOrder)
 
 			default:
 				time.Sleep(100 * time.Millisecond)
+				// order.OccupyTables(tables, NumberOfTables)
 				waiter.PickUpOrder(tables, &orderId)
 
 			}
@@ -111,9 +112,6 @@ func main() {
 
 	}
 
-	// ADDED FOR MAIN
-
-	// COMMENT FOR TEST BRANCH
 	/*
 		for {
 			go sendOrder()

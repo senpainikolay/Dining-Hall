@@ -6,10 +6,13 @@ import (
 )
 
 type Order struct {
-	OrderId  int     `json:"order_id"`
-	Items    []int   `json:"items"`
-	Priority int     `json:"priority"`
-	MaxWait  float64 `json:"max_wait"`
+	OrderId    int     `json:"order_id"`
+	Items      []int   `json:"items"`
+	Priority   int     `json:"priority"`
+	MaxWait    float64 `json:"max_wait"`
+	TableId    int     `json:"table_id"`
+	WaiterId   int     `json:"waiter_id"`
+	PickUpTime int64   `json:"pick_up_time"`
 }
 
 type OrderId struct {
