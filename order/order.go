@@ -2,6 +2,7 @@ package order
 
 import (
 	"math/rand"
+	"sync"
 )
 
 type Order struct {
@@ -11,10 +12,17 @@ type Order struct {
 	MaxWait  float64 `json:"max_wait"`
 }
 
-func GetRandomOrder(orderId *int) *Order {
+type OrderId struct {
+	Id    int
+	Mutex sync.Mutex
+}
+
+func GetRandomOrder(orderId *OrderId) *Order {
 	menu := getFoods()
-	*orderId += 1
-	temp := *orderId
+	orderId.Mutex.Lock()
+	orderId.Id += 1
+	temp := orderId.Id
+	orderId.Mutex.Unlock()
 	items := make([]int, rand.Intn(10)+1)
 	maxWaitInt := 0
 

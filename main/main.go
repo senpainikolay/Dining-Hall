@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"time"
 
@@ -26,7 +27,7 @@ func PostHomePage(c *gin.Context) {
 }
 
 const (
-	NumberOfTables  = 9
+	NumberOfTables  = 10
 	NumberOfWaiters = 5
 )
 
@@ -68,13 +69,47 @@ func main() {
 			order.Table{
 				TableId:         i,
 				Free:            true,
-				ReadToOrder:     false,
+				ReadyToOrder:    false,
 				WaitingForOrder: false,
 				OrderRecieving:  make(chan order.Order, 1),
 			})
 	}
 
+	var waiters []order.Waiter
+
+	for i := 1; i <= NumberOfWaiters; i++ {
+		waiters = append(waiters,
+			order.Waiter{
+				WaiterId:        i,
+				OrdersToRecieve: make(chan order.Order),
+				OrdersToServe:   make(chan order.Order),
+			})
+	}
+
 	order.OccupyTables(tables, NumberOfTables)
+	log.Println("AUFFF")
+	orderId := order.OrderId{Id: 0}
+
+	for {
+
+		for _, waiter := range waiters {
+
+			select {
+			case PostOrder := <-waiter.OrdersToRecieve:
+				fmt.Printf("%+v To send to Kitchen from waiter Id %v", PostOrder, waiter.WaiterId)
+
+			case ServeOrder := <-waiter.OrdersToServe:
+				fmt.Printf("%+v Serving", ServeOrder)
+
+			default:
+				time.Sleep(100 * time.Millisecond)
+				waiter.PickUpOrder(tables, &orderId)
+
+			}
+
+		}
+
+	}
 
 	// ADDED FOR MAIN
 
