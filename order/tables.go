@@ -13,28 +13,47 @@ type Table struct {
 	Free            bool
 	ReadyToOrder    bool
 	WaitingForOrder bool
-	OrderRecieving  chan Order
-	Mutex           sync.Mutex
 }
 
-func OccupyTables(tables []Table, nrOfTables int) {
-	remainder := math.Mod(float64(nrOfTables), float64(nrOfTables/2))
+type Tables struct {
+	Tables []Table
+	Mutex  sync.Mutex
+}
 
-	for i := 0; i < nrOfTables; i++ {
+func GetTables(nrOfTables int) *Tables {
+	var tables Tables
+
+	for i := 1; i <= nrOfTables; i++ {
+		tables.Tables = append(tables.Tables,
+			Table{
+				TableId:         i,
+				Free:            true,
+				ReadyToOrder:    false,
+				WaitingForOrder: false,
+			})
+	}
+	return &tables
+
+}
+
+func (ts *Tables) OccupyTables() {
+	remainder := math.Mod(float64(len(ts.Tables)), float64(len(ts.Tables)/2))
+	ts.Mutex.Lock()
+	defer ts.Mutex.Unlock()
+
+	for i := 0; i < len(ts.Tables); i++ {
 		idx := i
 		go func() {
-			tables[idx].Mutex.Lock()
-			defer tables[idx].Mutex.Unlock()
-			if tables[idx].Free == true && int(remainder) == rand.Intn(nrOfTables/2) {
-				tables[idx].Free = false
+			if ts.Tables[idx].Free && int(remainder) == rand.Intn(len(ts.Tables)/2) {
+				ts.Tables[idx].Free = false
+				tempId := idx
 				go func() {
-					time.Sleep(2 * time.Second)
-					tables[idx].ReadyToOrder = true
-					log.Printf(" Table %v ready to make the order!", tables[idx].TableId)
+					time.Sleep(TIME_UNIT * 5 * time.Millisecond)
+					ts.Tables[tempId].ReadyToOrder = true
+					log.Printf(" Table %v ready to make the order!", ts.Tables[tempId].TableId)
 				}()
-				log.Printf(" Table %v Occupied!", tables[idx].TableId)
+				log.Printf(" Table %v Occupied!", ts.Tables[idx].TableId)
 			}
 		}()
-
 	}
 }
