@@ -12,6 +12,11 @@ import (
 	"github.com/senpainikolay/Dining-Hall/order"
 )
 
+const (
+	NumberOfTables  = 10
+	NumberOfWaiters = 5
+)
+
 func PostKitchenOrders(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -27,42 +32,14 @@ func PostKitchenOrders(w http.ResponseWriter, r *http.Request) {
 
 }
 
-const (
-	NumberOfTables  = 10
-	NumberOfWaiters = 5
-)
-
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
 	r := mux.NewRouter()
 	r.HandleFunc("/distribution", PostKitchenOrders).Methods("POST")
-	go http.ListenAndServe(":8080", r)
 
-	var tables []order.Table
-
-	for i := 1; i <= NumberOfTables; i++ {
-		tables = append(tables,
-			order.Table{
-				TableId:         i,
-				Free:            true,
-				ReadyToOrder:    false,
-				WaitingForOrder: false,
-				OrderRecieving:  make(chan order.Order, 1),
-			})
-	}
-
-	var waiters []order.Waiter
-
-	for i := 1; i <= NumberOfWaiters; i++ {
-		waiters = append(waiters,
-			order.Waiter{
-				WaiterId:        i,
-				OrdersToRecieve: make(chan order.Order),
-				OrdersToServe:   make(chan order.Order),
-			})
-	}
-
+	tables := order.GetTables(NumberOfTables)
+	waiters := order.GetWaiters(NumberOfWaiters)
 	orderId := order.OrderId{Id: 0}
 	/*
 		sendOrder := func(ord *order.Order) {
@@ -84,40 +61,17 @@ func main() {
 
 		}
 	*/
-
 	go func() {
 		for {
-			order.OccupyTables(tables, NumberOfTables)
-			time.Sleep(2 * time.Second)
+			tables.OccupyTables()
+			time.Sleep(5 * time.Second)
 		}
 	}()
-
-	for {
-
-		go func() {
-
-			for _, waiter := range waiters {
-
-				select {
-				case PostOrder := <-waiter.OrdersToRecieve:
-					//sendOrder(&PostOrder)
-					log.Printf(" Send to kitchen: %+v", PostOrder)
-
-				case ServeOrder := <-waiter.OrdersToServe:
-					log.Printf("%+v Serving", ServeOrder)
-
-				default:
-					time.Sleep(100 * time.Millisecond)
-					//	order.OccupyTables(tables, NumberOfTables)
-					waiter.PickUpOrder(tables, &orderId)
-
-				}
-
-			}
-		}()
-
-		time.Sleep(400 * time.Millisecond)
-
+	for i := 0; i < NumberOfWaiters; i++ {
+		idx := i
+		go func() { waiters.Waiters[idx].Work(tables, &orderId) }()
 	}
+
+	http.ListenAndServe(":8080", r)
 
 }
