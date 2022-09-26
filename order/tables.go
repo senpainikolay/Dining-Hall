@@ -48,7 +48,7 @@ func (ts *Tables) OccupyTables() {
 				ts.Tables[idx].Free = false
 				tempId := idx
 				go func() {
-					time.Sleep(2 * time.Second)
+					time.Sleep(TIME_UNIT * 5 * time.Millisecond)
 					ts.Tables[tempId].ReadyToOrder = true
 					log.Printf(" Table %v ready to make the order!", ts.Tables[tempId].TableId)
 				}()

@@ -17,6 +17,9 @@ const (
 	NumberOfWaiters = 5
 )
 
+var waiters *order.Waiters
+var tables *order.Tables
+
 func PostKitchenOrders(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
@@ -29,42 +32,23 @@ func PostKitchenOrders(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "Succesfully recieved to Dining Hall")
 
 	log.Printf("Order id %v succesfully recieved from Kitchen", ord.OrderId)
+	waiters.Waiters[ord.WaiterId-1].OrdersToServe <- ord
 
 }
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
+	tables = order.GetTables(NumberOfTables)
+	waiters = order.GetWaiters(NumberOfWaiters)
+	orderId := order.OrderId{Id: 0}
 
 	r := mux.NewRouter()
 	r.HandleFunc("/distribution", PostKitchenOrders).Methods("POST")
 
-	tables := order.GetTables(NumberOfTables)
-	waiters := order.GetWaiters(NumberOfWaiters)
-	orderId := order.OrderId{Id: 0}
-	/*
-		sendOrder := func(ord *order.Order) {
-			postBody, _ := json.Marshal(*ord)
-			responseBody := bytes.NewBuffer(postBody)
-			resp, err := http.Post("http://localhost:8081/order", "application/json", responseBody)
-			if err != nil {
-				log.Fatalf("An Error Occured %v", err)
-			}
-			defer resp.Body.Close()
-			//Read the response body
-			body, err := ioutil.ReadAll(resp.Body)
-
-			if err != nil {
-				log.Fatalln(err)
-			}
-			sb := string(body)
-			log.Printf(sb)
-
-		}
-	*/
 	go func() {
 		for {
 			tables.OccupyTables()
-			time.Sleep(5 * time.Second)
+			time.Sleep(order.TIME_UNIT * 70 * time.Millisecond)
 		}
 	}()
 	for i := 0; i < NumberOfWaiters; i++ {
