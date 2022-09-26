@@ -15,6 +15,22 @@ type Order struct {
 	WaiterId   int     `json:"waiter_id"`
 }
 
+type Payload struct {
+	OrderId        int              `json:"order_id"`
+	Items          []int            `json:"items"`
+	Priority       int              `json:"priority"`
+	MaxWait        float64          `json:"max_wait"`
+	PickUpTime     int64            `json:"pick_up_time"`
+	TableId        int              `json:"table_id"`
+	WaiterId       int              `json:"waiter_id"`
+	CookingTime    int64            `json:"cooking_time"`
+	CookingDetails []CookingDetails `json:"cooking_details"`
+}
+type CookingDetails struct {
+	CookId int `json:"cook_id"`
+	FoodId int `json:"food_id"`
+}
+
 type OrderId struct {
 	Id    int
 	Mutex sync.Mutex
@@ -35,7 +51,7 @@ func GetRandomOrder(orderId *OrderId) *Order {
 			maxWaitInt = menu.Foods[items[i]-1].PreparationTime
 		}
 	}
-	priority := rand.Intn(4) + 1
+	priority := rand.Intn(5) + 1
 
 	return &Order{
 		OrderId:  temp,
