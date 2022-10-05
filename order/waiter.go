@@ -39,42 +39,48 @@ func GetWaiters(numberOfWaiters int) *Waiters {
 }
 
 func (w *Waiter) PickUpOrder(ts *Tables, orderId *OrderId) {
-	ts.Mutex.Lock()
-	defer ts.Mutex.Unlock()
+
 	for i := w.WaiterId - 1; i < len(ts.Tables)+w.WaiterId-1; i++ {
 		idx := i
 		idx = int(math.Mod(float64(idx), float64(len(ts.Tables)-1)))
+		ts.Tables[idx].Mutex.Lock()
 		if ts.Tables[idx].ReadyToOrder {
 			ord := GetRandomOrder(orderId)
 			ord.TableId = ts.Tables[idx].TableId
 			ord.WaiterId = w.WaiterId
-			ord.PickUpTime = time.Now().Unix()
+			ord.PickUpTime = time.Now().UnixMilli()
 			log.Printf("Waiter id %v picked up at table id %v", w.WaiterId, ts.Tables[idx].TableId)
 			go func() { w.OrdersToRecieve <- *ord }()
 			ts.Tables[idx].ReadyToOrder = false
 			ts.Tables[idx].WaitingForOrder = true
+			ts.Tables[idx].Mutex.Unlock()
 			break
 		}
+		ts.Tables[idx].Mutex.Unlock()
 
 	}
 
 }
 
-func (w *Waiter) Work(ts *Tables, orderId *OrderId) {
+func (w *Waiter) Work(ts *Tables, orderId *OrderId, r *Rating) {
 
 	for {
 
 		select {
 		case ServeOrder := <-w.OrdersToServe:
-			ok := time.Now().Unix() - ServeOrder.PickUpTime
+			ok := (time.Now().UnixMilli() - ServeOrder.PickUpTime) / int64(TIME_UNIT)
+			go func() {
+				r.Mutex.Lock()
+				r.Calculate(ServeOrder.MaxWait, float64(ok))
+				r.Mutex.Unlock()
+			}()
 			log.Printf("MAXWAIT: %v   THE TIME ? : %v", ServeOrder.MaxWait, ok)
 			go func() {
-
-				ts.Mutex.Lock()
-				defer ts.Mutex.Unlock()
+				ts.Tables[ServeOrder.TableId-1].Mutex.Lock()
 				ts.Tables[ServeOrder.TableId-1].WaitingForOrder = false
-				time.Sleep(TIME_UNIT * 15 * time.Millisecond)
+				time.Sleep(TIME_UNIT * 10 * time.Millisecond)
 				ts.Tables[ServeOrder.TableId-1].Free = true
+				ts.Tables[ServeOrder.TableId-1].Mutex.Unlock()
 			}()
 			log.Printf("Waiter id %v serving table id %v with order id %v containing items: %+v \n", ServeOrder.WaiterId, ServeOrder.TableId, ServeOrder.OrderId, ServeOrder.Items)
 
@@ -83,7 +89,7 @@ func (w *Waiter) Work(ts *Tables, orderId *OrderId) {
 			log.Printf("Order id %v sent to kitchen: ", PostOrder.OrderId)
 
 		default:
-			time.Sleep(4 * TIME_UNIT * time.Millisecond)
+			time.Sleep(2 * TIME_UNIT * time.Millisecond)
 			w.PickUpOrder(ts, orderId)
 
 		}
