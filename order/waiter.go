@@ -49,7 +49,7 @@ func (w *Waiter) PickUpOrder(ts *Tables, orderId *OrderId) {
 			ord.TableId = ts.Tables[idx].TableId
 			ord.WaiterId = w.WaiterId
 			ord.PickUpTime = time.Now().UnixMilli()
-			log.Printf("Waiter id %v picked up at table id %v", w.WaiterId, ts.Tables[idx].TableId)
+			//log.Printf("Waiter id %v picked up at table id %v", w.WaiterId, ts.Tables[idx].TableId)
 			go func() { w.OrdersToRecieve <- *ord }()
 			ts.Tables[idx].ReadyToOrder = false
 			ts.Tables[idx].WaitingForOrder = true
@@ -62,7 +62,7 @@ func (w *Waiter) PickUpOrder(ts *Tables, orderId *OrderId) {
 
 }
 
-func (w *Waiter) Work(ts *Tables, orderId *OrderId, r *Rating) {
+func (w *Waiter) Work(ts *Tables, orderId *OrderId, r *Rating, address string) {
 
 	for {
 
@@ -74,7 +74,7 @@ func (w *Waiter) Work(ts *Tables, orderId *OrderId, r *Rating) {
 				r.Calculate(ServeOrder.MaxWait, float64(ok))
 				r.Mutex.Unlock()
 			}()
-			log.Printf("MAXWAIT: %v   THE TIME ? : %v", ServeOrder.MaxWait, ok)
+			//log.Printf("MAXWAIT: %v   THE TIME ?: %v", ServeOrder.MaxWait, ok)
 			go func() {
 				ts.Tables[ServeOrder.TableId-1].Mutex.Lock()
 				ts.Tables[ServeOrder.TableId-1].WaitingForOrder = false
@@ -82,11 +82,11 @@ func (w *Waiter) Work(ts *Tables, orderId *OrderId, r *Rating) {
 				ts.Tables[ServeOrder.TableId-1].Free = true
 				ts.Tables[ServeOrder.TableId-1].Mutex.Unlock()
 			}()
-			log.Printf("Waiter id %v serving table id %v with order id %v containing items: %+v \n", ServeOrder.WaiterId, ServeOrder.TableId, ServeOrder.OrderId, ServeOrder.Items)
+			//log.Printf("Waiter id %v serving table id %v with order id %v containing items: %+v \n", ServeOrder.WaiterId, ServeOrder.TableId, ServeOrder.OrderId, ServeOrder.Items)
 
 		case PostOrder := <-w.OrdersToRecieve:
-			sendOrder(&PostOrder)
-			log.Printf("Order id %v sent to kitchen: ", PostOrder.OrderId)
+			sendOrder(&PostOrder, address)
+			//log.Printf("Order id %v sent to kitchen: ", PostOrder.OrderId)
 
 		default:
 			time.Sleep(2 * TIME_UNIT * time.Millisecond)
@@ -97,10 +97,10 @@ func (w *Waiter) Work(ts *Tables, orderId *OrderId, r *Rating) {
 
 }
 
-func sendOrder(ord *Order) {
+func sendOrder(ord *Order, address string) {
 	postBody, _ := json.Marshal(*ord)
 	responseBody := bytes.NewBuffer(postBody)
-	resp, err := http.Post("http://localhost:8081/order", "application/json", responseBody)
+	resp, err := http.Post("http://"+address+"/order", "application/json", responseBody)
 	if err != nil {
 		log.Fatalf("An Error Occured %v", err)
 	}

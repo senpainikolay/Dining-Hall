@@ -1,0 +1,4 @@
+{ 
+    "port" : "8090", 
+    "kitchen_address" : "kitchen1:8080"
+}

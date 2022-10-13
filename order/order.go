@@ -42,7 +42,7 @@ func GetRandomOrder(orderId *OrderId) *Order {
 	orderId.Id += 1
 	temp := orderId.Id
 	orderId.Mutex.Unlock()
-	items := make([]int, rand.Intn(5)+10)
+	items := make([]int, rand.Intn(9)+1)
 	maxWaitInt := 0
 
 	for i := range items {

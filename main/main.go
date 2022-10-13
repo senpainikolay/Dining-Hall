@@ -31,14 +31,12 @@ func PostKitchenOrders(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Fprint(w, "Succesfully recieved to Dining Hall")
 
-	log.Printf("Order id %v succesfully recieved from Kitchen", ord.OrderId)
-	log.Printf("%+v\n", ord)
-
 	waiters.Waiters[ord.WaiterId-1].OrdersToServe <- ord
 
 }
 
 func main() {
+	conf := order.GetConf()
 	rand.Seed(time.Now().UnixMilli())
 	tables = order.GetTables(NumberOfTables)
 	waiters = order.GetWaiters(NumberOfWaiters)
@@ -56,9 +54,9 @@ func main() {
 	}()
 	for i := 0; i < NumberOfWaiters; i++ {
 		idx := i
-		go func() { waiters.Waiters[idx].Work(tables, &orderId, rating) }()
+		go func() { waiters.Waiters[idx].Work(tables, &orderId, rating, conf.KitchenAddress) }()
 	}
 
-	http.ListenAndServe(":8080", r)
+	http.ListenAndServe(":"+conf.Port, r)
 
 }
