@@ -1,4 +1,9 @@
-{ 
-    "port" : "8091", 
-    "kitchen_address" : "kitchen2:8081"
+{  
+    "restaurant_id" : 2, 
+    "restaurant_name" : "UTM Cantina", 
+    "port" : "8091",  
+    "local_address" : "dininghall2:8091",
+    "kitchen_address" : "kitchen2:8081",      
+    "om_address" :  "ordermanager:5000" 
+
 }
