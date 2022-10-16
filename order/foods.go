@@ -19,7 +19,7 @@ type Food struct {
 	CookingApparatus string `json:"cooking_apparatus"`
 }
 
-func getFoods() *Foods {
+func GetFoods() *Foods {
 	jsonFile, err := os.Open("configurations/Foods.json")
 	if err != nil {
 		fmt.Println(err)

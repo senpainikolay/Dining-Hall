@@ -3,7 +3,6 @@ package order
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
 	"log"
 	"math"
 	"net/http"
@@ -38,14 +37,14 @@ func GetWaiters(numberOfWaiters int) *Waiters {
 
 }
 
-func (w *Waiter) PickUpOrder(ts *Tables, orderId *OrderId) {
+func (w *Waiter) PickUpOrder(ts *Tables, orderId *OrderId, menu *Foods) {
 
 	for i := w.WaiterId - 1; i < len(ts.Tables)+w.WaiterId-1; i++ {
 		idx := i
 		idx = int(math.Mod(float64(idx), float64(len(ts.Tables)-1)))
 		ts.Tables[idx].Mutex.Lock()
 		if ts.Tables[idx].ReadyToOrder {
-			ord := GetRandomOrder(orderId)
+			ord := GetRandomOrder(orderId, menu)
 			ord.TableId = ts.Tables[idx].TableId
 			ord.WaiterId = w.WaiterId
 			ord.PickUpTime = time.Now().UnixMilli()
@@ -62,7 +61,7 @@ func (w *Waiter) PickUpOrder(ts *Tables, orderId *OrderId) {
 
 }
 
-func (w *Waiter) Work(ts *Tables, orderId *OrderId, r *Rating, address string) {
+func (w *Waiter) Work(ts *Tables, orderId *OrderId, r *Rating, address string, menu *Foods) {
 
 	for {
 
@@ -71,9 +70,10 @@ func (w *Waiter) Work(ts *Tables, orderId *OrderId, r *Rating, address string) {
 			ok := (time.Now().UnixMilli() - ServeOrder.PickUpTime) / int64(TIME_UNIT)
 			go func() {
 				r.Mutex.Lock()
-				r.Calculate(ServeOrder.MaxWait, float64(ok))
+				r.Calculate(ServeOrder.MaxWait, float64(ok), address)
 				r.Mutex.Unlock()
 			}()
+			log.Printf(" DINININGHAL ORDER ID %v at %v ", ServeOrder.OrderId, address)
 			//log.Printf("MAXWAIT: %v   THE TIME ?: %v", ServeOrder.MaxWait, ok)
 			go func() {
 				ts.Tables[ServeOrder.TableId-1].Mutex.Lock()
@@ -85,19 +85,19 @@ func (w *Waiter) Work(ts *Tables, orderId *OrderId, r *Rating, address string) {
 			//log.Printf("Waiter id %v serving table id %v with order id %v containing items: %+v \n", ServeOrder.WaiterId, ServeOrder.TableId, ServeOrder.OrderId, ServeOrder.Items)
 
 		case PostOrder := <-w.OrdersToRecieve:
-			sendOrder(&PostOrder, address)
+			SendOrder(&PostOrder, address)
 			//log.Printf("Order id %v sent to kitchen: ", PostOrder.OrderId)
 
 		default:
-			time.Sleep(2 * TIME_UNIT * time.Millisecond)
-			w.PickUpOrder(ts, orderId)
+			w.PickUpOrder(ts, orderId, menu)
+			time.Sleep(TIME_UNIT * time.Millisecond)
 
 		}
 	}
 
 }
 
-func sendOrder(ord *Order, address string) {
+func SendOrder(ord *Order, address string) {
 	postBody, _ := json.Marshal(*ord)
 	responseBody := bytes.NewBuffer(postBody)
 	resp, err := http.Post("http://"+address+"/order", "application/json", responseBody)
@@ -106,12 +106,13 @@ func sendOrder(ord *Order, address string) {
 	}
 	defer resp.Body.Close()
 	//Read the response body
-	body, err := ioutil.ReadAll(resp.Body)
-
-	if err != nil {
-		log.Fatalln(err)
-	}
-	sb := string(body)
-	log.Printf(sb)
+	// body, err := ioutil.ReadAll(resp.Body)
+	/*
+		if err != nil {
+			log.Fatalln(err)
+		}
+	*/
+	//sb := string(body)
+	// log.Printf(sb)
 
 }

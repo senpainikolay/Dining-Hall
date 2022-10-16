@@ -37,10 +37,10 @@ func (r *Rating) Reformulate(maxWait float64, timeServed float64) int {
 
 }
 
-func (r *Rating) Calculate(maxWait float64, timeServer float64) {
+func (r *Rating) Calculate(maxWait float64, timeServer float64, address string) {
 	nr := r.Reformulate(maxWait, timeServer)
 	r.Sum += float64(nr)
 	r.Counter += 1
 	r.Score = r.Sum / r.Counter
-	log.Printf("The actual score: %v \n", r.Score)
+	log.Printf("The actual score: %v at %v \n", r.Score, address)
 }

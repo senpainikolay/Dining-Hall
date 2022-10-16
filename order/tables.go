@@ -1,7 +1,6 @@
 package order
 
 import (
-	"log"
 	"math"
 	"math/rand"
 	"sync"
@@ -52,9 +51,9 @@ func (ts *Tables) OccupyTables() {
 					ts.Tables[tempId].Mutex.Lock()
 					ts.Tables[tempId].ReadyToOrder = true
 					ts.Tables[tempId].Mutex.Unlock()
-					log.Printf(" Table %v ready to make the order!", ts.Tables[tempId].TableId)
+					//log.Printf(" Table %v ready to make the order!", ts.Tables[tempId].TableId)
 				}()
-				log.Printf(" Table %v Occupied!", ts.Tables[idx].TableId)
+				//log.Printf(" Table %v Occupied!", ts.Tables[idx].TableId)
 			}
 			ts.Tables[idx].Mutex.Unlock()
 		}()

@@ -8,8 +8,12 @@ import (
 )
 
 type Conf struct {
+	RestaurantId   int    `json:"restaurant_id"`
+	RestaurantName string `json:"restaurant_name"`
 	Port           string `json:"port"`
 	KitchenAddress string `json:"kitchen_address"`
+	LocalAddress   string `json:"local_address"`
+	OMAddress      string `json:"om_address"`
 }
 
 func GetConf() *Conf {
