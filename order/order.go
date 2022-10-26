@@ -51,6 +51,12 @@ type OrderId struct {
 	Mutex sync.Mutex
 }
 
+type EWTCalculation struct {
+	B int `json:"B"`
+	D int `json:"D"`
+	E int `json:"E"`
+}
+
 func GetRandomOrder(orderId *OrderId, menu *Foods) *Order {
 
 	orderId.Mutex.Lock()

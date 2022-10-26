@@ -86,7 +86,7 @@ func (w *Waiter) Work(ts *Tables, orderId *OrderId, r *Rating, address string, m
 
 		case PostOrder := <-w.OrdersToRecieve:
 			SendOrder(&PostOrder, address)
-			//log.Printf("Order id %v sent to kitchen: ", PostOrder.OrderId)
+			log.Printf("Order id %v sent to kitchen: ", PostOrder.OrderId)
 
 		default:
 			w.PickUpOrder(ts, orderId, menu)

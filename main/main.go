@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math"
 	"math/rand"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -37,12 +39,12 @@ func main() {
 	r.HandleFunc("/distribution", PostKitchenOrders).Methods("POST")
 	r.HandleFunc("/v2/order", PostClientOrders).Methods("POST")
 
-	RegisterAtOM(conf.OMAddress, conf.RestaurantId, conf.LocalAddress, conf.RestaurantName, rating.Score)
+	RegisterAtOM(rating.Score)
 
 	go func() {
 		for {
 			tables.OccupyTables()
-			time.Sleep(order.TIME_UNIT * 80 * time.Millisecond)
+			time.Sleep(order.TIME_UNIT * time.Duration((rand.Intn(20) + 60)) * time.Millisecond)
 		}
 	}()
 	for i := 0; i < NumberOfWaiters; i++ {
@@ -54,17 +56,17 @@ func main() {
 
 }
 
-func RegisterAtOM(address string, resId int, localAd string, resName string, rating float64) {
+func RegisterAtOM(rating float64) {
 	postBody, _ := json.Marshal(order.RegisterPayload{
-		RestaurantId: resId,
-		Address:      localAd,
-		Name:         resName,
+		RestaurantId: conf.RestaurantId,
+		Address:      conf.LocalAddress,
+		Name:         conf.RestaurantName,
 		MenuItems:    len(Menu.Foods),
 		Menu:         Menu.Foods,
 		Rating:       rating,
 	})
 	responseBody := bytes.NewBuffer(postBody)
-	resp, err := http.Post("http://"+address+"/register", "application/json", responseBody)
+	resp, err := http.Post("http://"+conf.OMAddress+"/register", "application/json", responseBody)
 	if err != nil {
 		log.Fatalf("An Error Occured %v", err)
 	}
@@ -129,7 +131,7 @@ func PostClientOrders(w http.ResponseWriter, r *http.Request) {
 	clientOrdResponse := order.ClientOrderResponse{
 		RestaurantId:         conf.RestaurantId,
 		OrderId:              temp,
-		EstimatedWaitingTime: 0,
+		EstimatedWaitingTime: EstimatedWaitingTimeCalculation(ord),
 		CreatedTime:          clientOrd.CreatedTime,
 		RegisteredTime:       time.Now().UnixMilli(),
 	}
@@ -137,4 +139,57 @@ func PostClientOrders(w http.ResponseWriter, r *http.Request) {
 	resp, _ := json.Marshal(&clientOrdResponse)
 	fmt.Fprint(w, string(resp))
 
+}
+
+func EstimatedWaitingTimeCalculation(ord order.Order) float64 {
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+	var A, B, C, D, E, F float64
+	go func() {
+		for _, food_id := range ord.Items {
+			if Menu.Foods[food_id-1].CookingApparatus == "" {
+				A += float64(Menu.Foods[food_id-1].PreparationTime)
+				continue
+			}
+			C += float64(Menu.Foods[food_id-1].PreparationTime)
+		}
+
+		F = float64(len(ord.Items))
+		wg.Done()
+	}()
+
+	go func() {
+		resp, err := http.Get("http://" + conf.KitchenAddress + "/estimationCalculation")
+		if err != nil {
+			log.Fatalf("An Error Occured %v", err)
+		}
+		defer resp.Body.Close()
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
+		var BDE order.EWTCalculation
+		if err := json.Unmarshal([]byte(body), &BDE); err != nil {
+			panic(err)
+		}
+		B = float64(BDE.B)
+		D = float64(BDE.D)
+		E = float64(BDE.E)
+		wg.Done()
+	}()
+
+	wg.Wait()
+	fm := ((A/B + C/D) * (E + F)) / F
+
+	return roundFloat(fm, 2)
+
+	// log.Println(menuInfo)
+
+}
+
+func roundFloat(val float64, precision uint) float64 {
+	ratio := math.Pow(10, float64(precision))
+	return math.Round(val*ratio) / ratio
 }
