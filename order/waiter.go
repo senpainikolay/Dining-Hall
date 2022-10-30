@@ -6,10 +6,16 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"sync"
 	"time"
 )
 
 const TIME_UNIT = 100
+
+type OrderPickUpController struct {
+	Mutex     sync.Mutex
+	SignalVar int
+}
 
 type Waiter struct {
 	WaiterId        int   `json:"waiter_id"`
@@ -61,7 +67,7 @@ func (w *Waiter) PickUpOrder(ts *Tables, orderId *OrderId, menu *Foods) {
 
 }
 
-func (w *Waiter) Work(ts *Tables, orderId *OrderId, r *Rating, address string, menu *Foods) {
+func (w *Waiter) Work(ts *Tables, orderId *OrderId, r *Rating, address string, menu *Foods, PickUpController *OrderPickUpController) {
 
 	for {
 
@@ -105,14 +111,5 @@ func SendOrder(ord *Order, address string) {
 		log.Fatalf("An Error Occured %v", err)
 	}
 	defer resp.Body.Close()
-	//Read the response body
-	// body, err := ioutil.ReadAll(resp.Body)
-	/*
-		if err != nil {
-			log.Fatalln(err)
-		}
-	*/
-	//sb := string(body)
-	// log.Printf(sb)
 
 }

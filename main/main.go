@@ -28,6 +28,8 @@ var Menu = order.GetFoods()
 var conf = order.GetConf()
 var orderId = order.OrderId{Id: 0}
 
+var PickUpController = order.OrderPickUpController{Mutex: sync.Mutex{}, SignalVar: 0}
+
 func main() {
 
 	rand.Seed(time.Now().UnixMilli())
@@ -38,18 +40,22 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/distribution", PostKitchenOrders).Methods("POST")
 	r.HandleFunc("/v2/order", PostClientOrders).Methods("POST")
+	r.HandleFunc("/getOrderStatus", GetOrdersStatus).Methods("GET")
 
 	RegisterAtOM(rating.Score)
 
 	go func() {
 		for {
-			tables.OccupyTables()
+			tables.OccupyTables(conf.KitchenAddress, &PickUpController)
 			time.Sleep(order.TIME_UNIT * time.Duration((rand.Intn(20) + 60)) * time.Millisecond)
+
 		}
 	}()
 	for i := 0; i < NumberOfWaiters; i++ {
 		idx := i
-		go func() { waiters.Waiters[idx].Work(tables, &orderId, rating, conf.KitchenAddress, Menu) }()
+		go func() {
+			waiters.Waiters[idx].Work(tables, &orderId, rating, conf.KitchenAddress, Menu, &PickUpController)
+		}()
 	}
 
 	http.ListenAndServe(":"+conf.Port, r)
@@ -79,6 +85,25 @@ func RegisterAtOM(rating float64) {
 	}
 	sb := string(body)
 	log.Printf(sb)
+
+}
+
+func GetOrdersStatus(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	resp, err := http.Get("http://" + conf.KitchenAddress + "/getOrderStatus")
+	if err != nil {
+		log.Fatalf("An Error Occured %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	fmt.Fprint(w, string(body))
 
 }
 
