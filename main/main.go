@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"math"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
@@ -17,8 +17,8 @@ import (
 )
 
 const (
-	NumberOfTables  = 10
-	NumberOfWaiters = 4
+	NumberOfTables  = 6
+	NumberOfWaiters = 3
 )
 
 var waiters *order.Waiters
@@ -29,6 +29,8 @@ var conf = order.GetConf()
 var orderId = order.OrderId{Id: 0}
 
 var PickUpController = order.OrderPickUpController{Mutex: sync.Mutex{}, SignalVar: 0}
+
+var clientMap = order.GetClientMap()
 
 func main() {
 
@@ -41,6 +43,7 @@ func main() {
 	r.HandleFunc("/distribution", PostKitchenOrders).Methods("POST")
 	r.HandleFunc("/v2/order", PostClientOrders).Methods("POST")
 	r.HandleFunc("/getOrderStatus", GetOrdersStatus).Methods("GET")
+	r.HandleFunc("/v2/order/{id}", GetClientOrderDetails).Methods("GET")
 
 	RegisterAtOM(rating.Score)
 
@@ -59,6 +62,15 @@ func main() {
 	}
 
 	http.ListenAndServe(":"+conf.Port, r)
+
+}
+
+func GetClientOrderDetails(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, _ := strconv.Atoi(vars["id"])
+	clientOrderStatus := clientMap.Get(id, Menu, conf.KitchenAddress)
+	resp, _ := json.Marshal(&clientOrderStatus)
+	fmt.Fprint(w, string(resp))
 
 }
 
@@ -118,8 +130,9 @@ func PostKitchenOrders(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Fprint(w, "Succesfully recieved to Dining Hall")
 
-	if ord.WaiterId == -1 || ord.TableId == -1 {
-		// LOGIC TO BE IMPLEMENTERD ON CLIENT ORDERS STACKING
+	if ord.WaiterId == -1 {
+		// Map isering the order
+		clientMap.Insert(&ord)
 		log.Printf("CLIENT's ORDER ID %v at %v DONE \n ", ord.OrderId, conf.LocalAddress)
 	} else {
 		waiters.Waiters[ord.WaiterId-1].OrdersToServe <- ord
@@ -141,80 +154,44 @@ func PostClientOrders(w http.ResponseWriter, r *http.Request) {
 	temp := orderId.Id
 	orderId.Mutex.Unlock()
 
+	regTime := int(time.Now().UnixMilli())
+
 	var ord = order.Order{
 		OrderId:    temp,
 		Items:      clientOrd.Items,
 		Priority:   clientOrd.Priority,
 		MaxWait:    clientOrd.MaxWait,
 		PickUpTime: clientOrd.CreatedTime,
-		TableId:    -1,
+		TableId:    regTime,
 		WaiterId:   -1,
 	}
+
+	// Inserting initiall registration
+	go func() {
+
+		clientMap.Insert(&order.Payload{
+			OrderId:        ord.OrderId,
+			Items:          ord.Items,
+			Priority:       ord.Priority,
+			MaxWait:        ord.MaxWait,
+			TableId:        ord.TableId,
+			WaiterId:       ord.WaiterId,
+			CookingTime:    0,
+			CookingDetails: nil,
+		})
+	}()
 
 	order.SendOrder(&ord, conf.KitchenAddress)
 
 	clientOrdResponse := order.ClientOrderResponse{
 		RestaurantId:         conf.RestaurantId,
 		OrderId:              temp,
-		EstimatedWaitingTime: EstimatedWaitingTimeCalculation(ord),
+		EstimatedWaitingTime: order.EstimatedWaitingTimeCalculation(ord, Menu, conf.KitchenAddress),
 		CreatedTime:          clientOrd.CreatedTime,
-		RegisteredTime:       time.Now().UnixMilli(),
+		RegisteredTime:       int64(regTime),
 	}
 
 	resp, _ := json.Marshal(&clientOrdResponse)
 	fmt.Fprint(w, string(resp))
 
-}
-
-func EstimatedWaitingTimeCalculation(ord order.Order) float64 {
-
-	var wg sync.WaitGroup
-	wg.Add(2)
-	var A, B, C, D, E, F float64
-	go func() {
-		for _, food_id := range ord.Items {
-			if Menu.Foods[food_id-1].CookingApparatus == "" {
-				A += float64(Menu.Foods[food_id-1].PreparationTime)
-				continue
-			}
-			C += float64(Menu.Foods[food_id-1].PreparationTime)
-		}
-
-		F = float64(len(ord.Items))
-		wg.Done()
-	}()
-
-	go func() {
-		resp, err := http.Get("http://" + conf.KitchenAddress + "/estimationCalculation")
-		if err != nil {
-			log.Fatalf("An Error Occured %v", err)
-		}
-		defer resp.Body.Close()
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			log.Fatalln(err)
-		}
-
-		var BDE order.EWTCalculation
-		if err := json.Unmarshal([]byte(body), &BDE); err != nil {
-			panic(err)
-		}
-		B = float64(BDE.B)
-		D = float64(BDE.D)
-		E = float64(BDE.E)
-		wg.Done()
-	}()
-
-	wg.Wait()
-	fm := ((A/B + C/D) * (E + F)) / F
-
-	return roundFloat(fm, 2)
-
-	// log.Println(menuInfo)
-
-}
-
-func roundFloat(val float64, precision uint) float64 {
-	ratio := math.Pow(10, float64(precision))
-	return math.Round(val*ratio) / ratio
 }
