@@ -6,4 +6,5 @@
     "kitchen_address" : "kitchen2:8081",      
     "om_address" :  "ordermanager:5000" 
 
-}
+} 
+

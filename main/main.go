@@ -172,7 +172,7 @@ func PostKitchenOrders(w http.ResponseWriter, r *http.Request) {
 	if ord.WaiterId == -1 {
 		// Map isering the order
 		clientMap.Insert(&ord)
-		log.Printf("CLIENT's ORDER ID %v at %v DONE \n ", ord.OrderId, conf.LocalAddress)
+		// log.Printf("CLIENT's ORDER ID %v at %v DONE \n ", ord.OrderId, conf.LocalAddress)
 	} else {
 		waiters.Waiters[ord.WaiterId-1].OrdersToServe <- ord
 	}

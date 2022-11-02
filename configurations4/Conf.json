@@ -1,0 +1,9 @@
+{  
+    "restaurant_id" : 4, 
+    "restaurant_name" : "Tiotia Nina", 
+    "port" : "8093",  
+    "local_address" : "dininghall4:8093",
+    "kitchen_address" : "kitchen4:8083",      
+    "om_address" :  "ordermanager:5000" 
+
+}

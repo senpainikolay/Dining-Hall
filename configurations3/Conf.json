@@ -1,0 +1,9 @@
+{  
+    "restaurant_id" : 3, 
+    "restaurant_name" : "Twister", 
+    "port" : "8092",  
+    "local_address" : "dininghall3:8092",
+    "kitchen_address" : "kitchen3:8082",      
+    "om_address" :  "ordermanager:5000" 
+
+}

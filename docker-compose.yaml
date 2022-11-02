@@ -16,7 +16,25 @@ services:
           configurations: configurations2
           port: 8091
     ports:
-      - "8091:8091"
+      - "8091:8091" 
+  dininghall3:
+    build:
+      context: .
+      dockerfile: Dockerfile 
+      args:
+          configurations: configurations3
+          port: 8092
+    ports: 
+      - "8092:8092" 
+  dininghall4:
+    build:
+      context: .
+      dockerfile: Dockerfile 
+      args:
+          configurations: configurations4
+          port: 8093
+    ports:
+      - "8093:8093"
 networks:
   default:
     name: restaurant

@@ -80,7 +80,23 @@
         "preparation_time": 32,
         "complexity": 3,
         "cooking_apparatus": null
-    }
+    }, 
+    {
+        "id": 12,
+        "name": "Bluefin Tuna",
+        "preparation_time": 20,
+        "complexity": 2 ,
+        "cooking_apparatus": "stove" 
+    }, 
+        
+    {
+        "id": 13,
+        "name": "Rashituri",
+        "preparation_time": 17 ,
+        "complexity": 2 ,
+        "cooking_apparatus": null
+    } 
+    
     ]  
      
      }

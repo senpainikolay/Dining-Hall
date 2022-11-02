@@ -79,7 +79,7 @@ func (w *Waiter) Work(ts *Tables, orderId *OrderId, r *Rating, address string, m
 				r.Calculate(ServeOrder.MaxWait, float64(ok), address)
 				r.Mutex.Unlock()
 			}()
-			log.Printf(" DINININGHAL ORDER ID %v at %v ", ServeOrder.OrderId, address)
+			// log.Printf(" DINININGHAL ORDER ID %v at %v ", ServeOrder.OrderId, address)
 			//log.Printf("MAXWAIT: %v   THE TIME ?: %v", ServeOrder.MaxWait, ok)
 			go func() {
 				ts.Tables[ServeOrder.TableId-1].Mutex.Lock()
@@ -92,7 +92,7 @@ func (w *Waiter) Work(ts *Tables, orderId *OrderId, r *Rating, address string, m
 
 		case PostOrder := <-w.OrdersToRecieve:
 			SendOrder(&PostOrder, address)
-			log.Printf("Order id %v sent to kitchen: ", PostOrder.OrderId)
+			// log.Printf("Order id %v sent to kitchen: ", PostOrder.OrderId)
 
 		default:
 			w.PickUpOrder(ts, orderId, menu)
