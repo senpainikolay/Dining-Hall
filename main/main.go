@@ -24,6 +24,7 @@ const (
 var waiters *order.Waiters
 var tables *order.Tables
 
+var rating = order.GetRating()
 var Menu = order.GetFoods()
 var conf = order.GetConf()
 var orderId = order.OrderId{Id: 0}
@@ -37,13 +38,13 @@ func main() {
 	rand.Seed(time.Now().UnixMilli())
 	tables = order.GetTables(NumberOfTables)
 	waiters = order.GetWaiters(NumberOfWaiters)
-	rating := order.GetRating()
 
 	r := mux.NewRouter()
 	r.HandleFunc("/distribution", PostKitchenOrders).Methods("POST")
 	r.HandleFunc("/v2/order", PostClientOrders).Methods("POST")
 	r.HandleFunc("/getOrderStatus", GetOrdersStatus).Methods("GET")
 	r.HandleFunc("/v2/order/{id}", GetClientOrderDetails).Methods("GET")
+	r.HandleFunc("/v2/rating", ClientRatingPost).Methods("POST")
 
 	RegisterAtOM(rating.Score)
 
@@ -117,6 +118,44 @@ func GetOrdersStatus(w http.ResponseWriter, r *http.Request) {
 
 	fmt.Fprint(w, string(body))
 
+}
+
+func GetPreparedItems() int {
+	resp, err := http.Get("http://" + conf.KitchenAddress + "/getPreparedItems")
+	if err != nil {
+		log.Fatalf("An Error Occured %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	res, _ := strconv.Atoi(string(body))
+	return res
+
+}
+
+func ClientRatingPost(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	var ord order.RestaurantRatingPayload
+	err := json.NewDecoder(r.Body).Decode(&ord)
+	if err != nil {
+		log.Fatalln("There was an error decoding the request body into the struct")
+	}
+
+	score := rating.AddAndReturn(ord.Rating)
+
+	ratingResponse := order.RestaurantRatingResponse{
+		RestaurantId:        conf.RestaurantId,
+		RestaurantAvgRating: score,
+		PreparedOrders:      GetPreparedItems(),
+	}
+
+	resp, _ := json.Marshal(&ratingResponse)
+	fmt.Fprint(w, string(resp))
 }
 
 func PostKitchenOrders(w http.ResponseWriter, r *http.Request) {

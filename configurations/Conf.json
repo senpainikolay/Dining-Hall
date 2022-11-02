@@ -2,7 +2,7 @@
     "restaurant_id" : 1,    
     "restaurant_name" : "Vkusno i tochka", 
     "port" : "8090",  
-    "local_address" : "dininghall1:8090", 
-    "kitchen_address" : "kitchen1:8080", 
-    "om_address" :  "ordermanager:5000" 
+    "local_address" : "localhost:8090", 
+    "kitchen_address" : "localhost:8080", 
+    "om_address" :  "localhost:5000" 
 }

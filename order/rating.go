@@ -44,3 +44,13 @@ func (r *Rating) Calculate(maxWait float64, timeServer float64, address string) 
 	r.Score = r.Sum / r.Counter
 	log.Printf("The actual score: %v at %v \n", r.Score, address)
 }
+
+func (r *Rating) AddAndReturn(nr int) float64 {
+	r.Mutex.Lock()
+	r.Sum += float64(nr)
+	r.Counter += 1
+	r.Score = r.Sum / r.Counter
+	temp := r.Score
+	r.Mutex.Unlock()
+	return temp
+}
